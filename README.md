@@ -1,4 +1,4 @@
-# Syracuse_DataScience
+# Syracuse Data Science Projects
 This repo is a sample of projects done during my time in the Applied Data Science MS program at Syacuse. These projects run from relational database/data warehouse creation to machine learning powered insights and problem solving. All projects would receive an A upon completion and were used within my graduation portfolio to deomonstrate mastery of course material. Projects include:
 
 IST 659 - Database Administration: Fallout 4 Quest Database (T-SQL/Microsoft SQL Server Management Studio)
