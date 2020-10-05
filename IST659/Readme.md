@@ -1,4 +1,4 @@
-Fallout 4 Database
+# IST 659 - Fallout 4 SQL Database
 
 Fallout 4 is a 2015 open world role playing game that is renowned for its sprawing enviornments, deep interactivity, and non-linear storytelling. In particular, quest lines can branch in multiple directions and locations, making the tracking of them rather complex. This served as the inspiration for this project. I would use Microsfot SQL Server Management Studio to build a relational database that would contain all quests, quest rewards, associated characters, and associated locations, providing a comprehensive snapshot of the quest structure of Fallout 4. Views and stored procedures provide flexibility in accessing the database and making routine changes, while a front end built using Microsoft Access allowed for basic data analysis for non-technical users.
 
