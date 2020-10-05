@@ -1,0 +1,4 @@
+# IST707: Character Diversity in Marvel Comics
+
+This project was an attempt to better understand the evolution of character demographics at Marvel Comics, specifically those who are non-male identifying and are considered a Gender or Sexual Minority (GSM). The project would make use of a dataset provided by FiveThiryEight.com consisting of every introduced Marvel character up to 2014, totaling some 16,377 records. In addition to exploratory data analysis done in R, I also attempted to determine  1.) What characteristics are most commonly associated with characters in general and non-male characters? and 2.) Is it possible to predict if a character is male or female based on if they are dead and their number of appearances? I would make use of association rule miniing and decision trees in order to answer both questions. 
+
