@@ -1,0 +1,5 @@
+# IST 687: Capital Bikeshare Data Analysis
+
+Capital Bikeshare is Metro DC's largest bikesharing service, operating 24/7, 365 days a year. The company also freely provides it's data for analysis by any interested party. As part of a group of 4 students, my team would use datasets that included hourly/daily ride volume, seasonality, weather, and membership tier to determine ways to improve user experience, process optimization, and increase competitiveness in the rideshare industry. This included not only exploratory data analysis to determine, for example, pattern of usage based on weekdays or humidity levels, but also machine learning through SVM to determine if it was possible to predict whether a bike was rented on a weekday versus a weekend based on all other variables.
+
+This project would serve as an inspiration to undertake a similar exploratory data analysis for my workplace in order to better understand our client base and it's demands on my company's technical resources based on help desk tickets. 
