@@ -1,0 +1,166 @@
+---
+title: "Joel Bravo Final Project"
+output: rmarkdown::github_document
+
+---
+
+
+```{r}
+#Load data into R. Note that first appearance year and month columns were removed ahead of time as they will not be used for this analysis.
+characters <- read.csv("E:\\Documents\\Syracuse\\IST 719 - Information Visualization\\Homework\\Week 3\\marvel-wikia-data.csv")
+#urlslug and page_id are redundant due to coming from the wiki that hosted the data. We can remove without issue.
+characters <- subset(characters, select = -c(page_id, urlslug))
+#Characters who are assumed to be heterosexual by default have NA as a value in the GSM column. To clarify this, I will convert the NAs in the GSM column to Not GSM
+characters[["GSM"]][is.na(characters[["GSM"]])] <- "Not GSM"
+characters$GSM <- as.factor(characters$GSM)
+#NAs in Appearances should be 0. I can convert to 0 for more accurate analysis.
+characters[["APPEARANCES"]][is.na(characters[["APPEARANCES"]])] <- 0
+#Check the head of the DF
+head(characters)
+str(characters)
+```
+
+Further preprocessing:
+```{r}
+#Discretize the Appearance column with equal width bins
+minAppearances <- min(characters$APPEARANCES)
+maxAppearances <- max(characters$APPEARANCES)
+bins = 8
+width = (maxAppearances - minAppearances)/bins;
+characters$APPEARANCES = cut(characters$APPEARANCES, breaks = seq(minAppearances, maxAppearances, width))
+```
+
+Descriptive Statistics:
+```{r}
+summary(characters)
+```
+
+Overwhelming amount of characters are males who are not GSM, with a slight majority being blue eyed. Most characters have also appeared less than 500 times. Interestingly, there is a bias towards villanous characters. GSMs are severely underrepresented regardless of orientation. 
+
+```{r}
+#Visualization of stats
+#appearanceByGender <- aggregate(characters$SEX, by = list(characters$APPEARANCES), FUN = sum)
+library(ggplot2)
+library(ggpubr)
+genderBP <- ggplot(data = characters, aes(x = SEX, y= length(characters$SEX))) + geom_bar(stat = "identity", fill = "lightblue",) + xlab("Gender") + ylab("Count")+ theme(axis.text.x = element_text(angle=60, hjust=1))
+genderBP
+GSMBP <- ggplot(data = characters, aes(x = GSM, y= length(characters$GSM))) + geom_bar(stat = "identity", fill = "lightblue",) + xlab("GSM") + ylab("Count") + theme(axis.text.x = element_text(angle=60, hjust=1))
+GSMBP
+appearanceBP <- ggplot(data = characters, aes(x = APPEARANCES, y= length(characters$APPEARANCES))) + geom_bar(stat = "identity", fill = "lightblue") + xlab("Apperances") + ylab("Count") + theme(axis.text.x = element_text(angle=60, hjust=1))
+appearanceBP
+```
+
+
+```{r}
+#Association rule mining
+library(plyr)
+library(dplyr)
+library(arules)
+#Load data into apriori algorithm
+characterRules <- apriori(characters, parameter = list(supp = 0.4, conf = 0.9, maxlen = 3))
+#Let's run a summary on our rules to see what we have:
+summary(characterRules)
+```
+
+```{r}
+#Decent amount of rules, but I want to try to increase more
+characterRulesAlt <- apriori(characters, parameter = list(supp = 0.3, conf = 0.9, maxlen = 3))
+summary(characterRulesAlt)
+#Inspect rules
+inspect(characterRulesAlt)
+#Some standout items from rules incldue close to half of all male and living character not being a GSM and more broadly 70% of all living characters with less than 505 appearnces not being GSM. 92% of all characters who appear less than 505 times are not GSM. Curiously, female characters are represented in the rules at all.
+```
+
+```{r}
+#Set RHS to "Female Characters" in order to discover rules where a character is female
+characterRulesFinal <-  apriori(data = characters, parameter = list(supp = 0.3, conf = 0.9, maxlen = 3), appearance = list(default="lhs", rhs=c("SEX=Female Characters")), control = list(verbose = F))
+characterRulesFinal <- sort(characterRulesFinal, decreasing = TRUE, by = 'confidence')
+summary(characterRulesFinal)
+#Setting rhs to Female results in no rules. This is most likely due to there being far fewer female characters. Given this, I will need to adjust my apriori rules. 
+characterRulesFinal <- apriori(data = characters, parameter = list(supp = 0.001, conf = 0.8), appearance = list(default ="lhs", rhs=c("SEX=Female Characters")), control = list(verbose = F))
+characterRulesFinal <- sort(characterRulesFinal, decreasing = TRUE, by = 'confidence')
+summary(characterRulesFinal)
+inspect(characterRulesFinal)
+```
+
+```{r}
+#Most striking is that all the rules note that female characters appear to appear less than 505 times. While the majority of characters tend to appear less than 505 times in general, the fact that nearly all women fall into this bin seems to indicate a lack of high visibility (defined here as over 505 appearances) female characters. Female characters do not seem to be represented within the GSM spectrum as well.
+#Among the small number of rules that involve females, it appears that publically known identitifes are common. 
+#Female GSM characters are relatively unknown wihtin the rules. 
+```
+
+```{r}
+#Utlizing decision tree modeling to see if it is possible to determine if a character will be male or female based
+library(partykit)
+library(C50)
+library(caret)
+library(rpart)
+library(caTools)
+library(gdata)
+charactersDT <- characters
+colnames(charactersDT) <- make.names(colnames(charactersDT))
+charactersDT <- select(charactersDT, -c("name","ALIGN","EYE","HAIR", "GSM", "ID"))
+#There are a few empty rows that I can remove to avoid issues.
+charactersDT <- subset(charactersDT, SEX != '')
+charactersDT <- subset(charactersDT, ALIVE != '')
+charactersDT <- subset(charactersDT, APPEARANCES != '')
+#Drop any unused factor levels to avoid errors
+charactersDT$SEX <- droplevels(charactersDT$SEX)
+charactersDT$ALIVE <- droplevels(charactersDT$ALIVE)
+charactersDT$APPEARANCES <- droplevels(charactersDT$APPEARANCES)
+#Set S in order to create random selection of rows
+set.seed(123)
+S <- sample.split(charactersDT, SplitRatio = 0.75)
+#Select the training and testing data using S to randomize the selection
+chTrain <- subset(charactersDT, S == TRUE)
+chTest <- subset(charactersDT, S == FALSE)
+#remove labels from testing data
+chTestNL<-chTest[-c(1)]
+chTestLabel<-chTest$SEX
+#Train model
+chDTModel <- train(SEX ~ ., data = chTrain, metric = "Accuracy", method = "rpart")
+print(chDTModel)
+```
+
+```{r}
+#Accuracy is decently good at 74%, but I would like to tweak to create something better.
+chDTModelAlt <- train(SEX ~ ., data = chTrain, tuneLength = 5, control = rpart.control(minsplit = 10, minbucket = 5), metric = "Accuracy", method = "rpart")
+print(chDTModelAlt)
+```
+
+```{r}
+#Accuracy slightly went up, so I will use that model
+chDTDead <- subset(chTestNL, ALIVE = "Deceased Characters")
+chDTPredict <- predict(chDTModel, newdata = chDTDead, na.action = na.omit, type = "prob")
+print(chDTPredict)
+```
+
+
+```{r}
+#Saving code for reference
+charactersDT <- characters
+colnames(charactersDT) <- make.names(colnames(charactersDT))
+charactersDT <- select(charactersDT, -c("name","ALIGN","EYE","HAIR"))
+#There are a few empty rows that I can remove to avoid issues.
+charactersDT <- subset(charactersDT, SEX != '')
+charactersDT <- subset(charactersDT, ALIVE != '')
+charactersDT <- subset(charactersDT, ID != '')
+charactersDT <- subset(charactersDT, APPEARANCES != '')
+charactersDT <- subset(charactersDT, GSM != '')
+#Drop any unused factor levels to avoid errors
+charactersDT$SEX <- droplevels(charactersDT$SEX)
+charactersDT$ALIVE <- droplevels(charactersDT$ALIVE)
+charactersDT$ID <- droplevels(charactersDT$ID)
+charactersDT$APPEARANCES <- droplevels(charactersDT$APPEARANCES)
+charactersDT$GSM <- droplevels(charactersDT$GSM)
+#Set S in order to create random selection of rows
+set.seed(123)
+S <- sample.split(charactersDT, SplitRatio = 0.75)
+#Select the training and testing data using S to randomize the selection
+chTrain <- subset(charactersDT, S == TRUE)
+chTest <- subset(charactersDT, S == FALSE)
+#Train model
+chDTModel <- train(ALIVE ~ ., data = chTrain, metric = "Accuracy", method = "rpart")
+print(chDTModel)
+```
+
