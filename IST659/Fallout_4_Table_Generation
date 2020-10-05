@@ -1,0 +1,70 @@
+/* Note the use of the DROP TABLE IF EXISTS statements. Thanks to using SQL Server 2017,
+these statements will ensure that we can run these commands repeatedly without issue by 
+automatically dropping the named table prior to creating it if it exists */
+
+DROP TABLE IF EXISTS QuestReward
+CREATE TABLE QuestReward (
+	quest_reward_ID int identity primary key,
+	quest_reward_name varchar(50),
+	quest_reward_type varchar(30)
+)
+
+DROP TABLE IF EXISTS LocationWorldspace
+CREATE TABLE LocationWorldspace (
+	location_worldspace_ID int identity primary key,
+	worldspace_name varchar(100),
+	region_name varchar(100)
+)
+
+DROP TABLE IF EXISTS Location
+CREATE TABLE Location (
+	location_ID int identity primary key,
+	location_name varchar(50),
+	location_worldspace_ID int foreign key REFERENCES LocationWorldspace(location_worldspace_ID),
+	location_owner varchar(50)
+)
+
+DROP TABLE IF EXISTS Quest
+CREATE TABLE Quest (
+	quest_ID int identity primary key,
+	quest_name varchar(30),
+	quest_type varchar(30),
+	quest_reward_ID int foreign key REFERENCES QuestReward(quest_reward_ID)
+)
+
+DROP TABLE IF EXISTS QuestLocation
+CREATE TABLE QuestLocation (
+	quest_location_ID int identity primary key,
+	quest_ID int foreign key REFERENCES Quest(quest_ID),
+	location_ID int foreign key REFERENCES Location(location_ID)
+)
+
+DROP TABLE IF EXISTS QuestGiver
+CREATE TABLE QuestGiver (
+	quest_giver_ID int identity primary key,
+	quest_giver_name varchar(30),
+	sex varchar(20),
+	race varchar(20),
+	faction varchar(30)
+)
+
+DROP TABLE IF EXISTS QuestQuestGiver
+CREATE TABLE QuestQuestGiver (
+	quest_quest_giver_ID int identity primary key,
+	quest_ID int foreign key REFERENCES Quest(quest_ID),
+	quest_giver_ID int foreign key REFERENCES QuestGiver(quest_giver_ID)
+)
+
+DROP TABLE IF EXISTS QuestGiverLocation
+CREATE TABLE QuestGiverLocation (
+	quest_giver_location_ID int identity primary key,
+	quest_giver_ID int foreign key REFERENCES QuestGiver(quest_giver_ID),
+	location_ID int foreign key REFERENCES Location(location_ID),
+)
+
+DROP TABLE IF EXISTS QuestRewardType
+CREATE TABLE QuestRewardType (
+	quest_reward_type_ID int identity primary key,
+	quest_reward_type varchar(30)
+)
+
